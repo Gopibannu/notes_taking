@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Login</h2>
+
+    <form id="loginForm">
+        <input type="email" id="email" name="email" placeholder="Email" required>
+        <input type="password" id="password" name="password" placeholder="Password" required>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <div class="link">
+        Don't have an account? <a href="/signup.html">Signup</a>
+    </div>
+</div>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault(); // stops normal form submit
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    // Send request to backend
+    const res = await fetch("http://localhost:3000/login", {
+        method: "POST",
+        credentials:"include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+    });
+
+   
+    const data = await res.json();
+    
+    if (data.success) {
+        window.location.href = "notes.html"; // redirect to Notes page
+    } else {
+        alert(data.message);
+    }
+    
+    
+});
+</script>
+
+</body>
+</html>

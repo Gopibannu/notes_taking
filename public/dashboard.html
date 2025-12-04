@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .welcome-box {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .logout-btn {
+            margin-top: 20px;
+            background: #dc3545;
+        }
+        .logout-btn:hover {
+            background: #b52a36;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Dashboard</h2>
+
+    <div class="welcome-box">
+        <h3>Hello, <span id="username">User</span> 👋</h3>
+    </div>
+
+    <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<script>
+async function loadUser() {
+    const res = await fetch("http://localhost:3000/dashboard", {
+        method: "GET",
+        credentials: "include"
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+        window.location.href = "login.html";
+        return;
+    }
+    else{
+        document.getElementById("username").innerText = data.username;
+    }
+    
+}
+
+loadUser();
+
+async function logout() {
+    const res = await fetch("http://localhost:3000/logout", {
+        method: "POST",
+        credentials: "include"
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+        localStorage.removeItem("username");
+        window.location.href = "login.html";
+    }
+}
+</script>
+
+
+</body>
+</html>
