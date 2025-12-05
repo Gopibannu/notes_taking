@@ -6,17 +6,32 @@
 
     <style>
         .delete-btn {
-    background: #ff4d4d;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    color: white;
-    margin-top: 10px;
-}
-.delete-btn:hover {
-    background: #e60000;
-}
+            background: #ff4d4d;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            margin-top: 10px;
+            margin-right: 6px;
+        }
+        .delete-btn:hover {
+            background: #e60000;
+        }
+
+        .edit-btn {
+            background: #4CAF50;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            margin-top: 10px;
+            margin-right: 6px;
+        }
+        .edit-btn:hover {
+            background: #007f00;
+        }
 
         .notes-container {
             width: 100%;
@@ -50,10 +65,10 @@
 <div class="container">
     <h2>Welcome, <span id="username"></span> 👋</h2>
 
-    <!-- Add Note Form -->
+    <!-- Add / Edit Note Form -->
     <input type="text" id="noteTitle" placeholder="Note Title" required>
     <textarea id="noteContent" placeholder="Write your note..." required></textarea>
-    <button class="btn" onclick="addNote()">Add Note</button>
+    <button class="btn" id="actionBtn" onclick="saveNote()">Add Note</button>
 
     <h3>Your Notes:</h3>
 
@@ -66,7 +81,10 @@
 </div>
 
 <script>
+let updateId = null;       // which note we are editing
+let notesData = [];        // cache notes from backend
 
+// Load user + notes
 async function loadUser() {
     const res = await fetch("http://localhost:3000/notes", {
         method: "GET",
@@ -81,7 +99,8 @@ async function loadUser() {
     }
 
     document.getElementById("username").innerText = data.username;
-    displayNotes(data.notes);
+    notesData = data.notes || [];
+    displayNotes(notesData);
 }
 
 // Display notes dynamically
@@ -92,18 +111,29 @@ function displayNotes(notes) {
     notes.forEach(note => {
         const div = document.createElement("div");
         div.classList.add("note-box");
+
         div.innerHTML = `
-    <h4>${note.title}</h4>
-    <p>${note.content}</p>
-    <button onclick="deleteNote(${note.id})" class="delete-btn">Delete</button>
-`;
+            <h4>${escapeHTML(note.title)}</h4>
+            <p>${escapeHTML(note.content)}</p>
+            <button class="edit-btn" onclick="editNote('${note.id}')">Edit</button>
+            <button class="delete-btn" onclick="deleteNote('${note.id}')">Delete</button>
+        `;
 
         list.appendChild(div);
     });
 }
 
-// Add Note
-async function addNote() {
+// Escape HTML so content doesn’t break layout / run scripts
+function escapeHTML(text) {
+    if (!text) return "";
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+// Add or Update Note
+async function saveNote() {
     const title = document.getElementById("noteTitle").value.trim();
     const content = document.getElementById("noteContent").value.trim();
 
@@ -112,21 +142,56 @@ async function addNote() {
         return;
     }
 
-    const res = await fetch("http://localhost:3000/notes", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content })
-    });
+    let res, data;
 
-    const data = await res.json();
-    console.log(data);
-    alert(data.message);
+    if (updateId) {
+        // UPDATE existing note
+        res = await fetch(`http://localhost:3000/notes/${updateId}`, {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, content })
+        });
+        data = await res.json();
+        alert(data.message);
+
+        // reset edit state
+        updateId = null;
+        document.getElementById("actionBtn").innerText = "Add Note";
+    } else {
+        // ADD new note
+        res = await fetch("http://localhost:3000/notes", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, content })
+        });
+        data = await res.json();
+        alert(data.message);
+    }
 
     if (data.success) {
+        clearForm();
         loadUser(); // refresh notes list
     }
 }
+
+// When clicking Edit button
+function editNote(id) {
+    // find note in cached list
+    const note = notesData.find(n => String(n.id) === String(id));
+    if (!note) {
+        alert("Note not found");
+        return;
+    }
+
+    updateId = note.id;  // remember which note to update
+    document.getElementById("noteTitle").value = note.title;
+    document.getElementById("noteContent").value = note.content;
+    document.getElementById("actionBtn").innerText = "Update Note";
+}
+
+// Delete Note
 async function deleteNote(id) {
     if (!confirm("Are you sure you want to delete this note?")) return;
 
@@ -143,6 +208,11 @@ async function deleteNote(id) {
     }
 }
 
+// Clear form inputs
+function clearForm() {
+    document.getElementById("noteTitle").value = "";
+    document.getElementById("noteContent").value = "";
+}
 
 // Logout
 async function logout() {
@@ -158,8 +228,8 @@ async function logout() {
     }
 }
 
+// initial load
 loadUser();
-
 </script>
 
 </body>

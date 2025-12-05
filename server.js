@@ -148,6 +148,22 @@ app.delete("/notes/:id", authMiddleware, (req, res) => {
         return res.json({ success: true, message: "Note deleted successfully" });
     });
 });
+app.put("/notes/:id", authMiddleware, (req, res) => {
+    const { id } = req.params;
+    const { title, content } = req.body;
+    const username = req.username;
+
+    if (!title || !content) {
+        return res.json({ success: false, message: "All fields required" });
+    }
+
+    const query = "UPDATE notes SET title = ?, content = ? WHERE id = ? AND username = ?";
+    db.query(query, [title, content, id, username], (err, result) => {
+        if (err) return res.json({ success: false, message: "DB error" });
+        res.json({ success: true, message: "Note Updated Successfully!" });
+    });
+});
+
 
 app.listen(3000,()=>{
     console.log(`Server Running at port http://localhost:${3000}`);
